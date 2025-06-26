@@ -1,29 +1,30 @@
-from django.contrib.auth.models import AbstractUser, BaseUserManager, User, AbstractBaseUser, PermissionsMixin
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 import random
+from django.conf import settings
 
 
-class User(AbstractUser):
-    pass
-
-class CustomUserManager():
+class CustomUserManager(BaseUserManager):
     def create_user(self, email, username=None, password=None, **extra_fields):
+        if not email:
+            raise ValueError("The Email field is required")
         email = self.normalize_email(email)
         user = self.model(email=email, username=username, **extra_fields)
-        user.set_password()
-        user.save()
+        user.set_password(password)
+        user.save(using=self._db)
         return user
         
-    def create_superuser(self, email, username=None, password=None **extra_fields):
+    def create_superuser(self, email, username=None, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
-        
-        if extra_fields.get('is_staff')is not True:
-            raise ValueError("staff must have true ")
-        if extra_fields.get('is_superuser')is not True:
-            raise ValueError("superuser must have true ")
+
+        if not extra_fields.get('is_staff'):
+            raise ValueError("Superuser must have is_staff=True.")
+        if not extra_fields.get('is_superuser'):
+            raise ValueError("Superuser must have is_superuser=True.")
         return self.create_user(email, username, password, **extra_fields)
+
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
@@ -32,15 +33,18 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=50)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+
     objects = CustomUserManager()
-    username_field = ""
+
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     def __str__(self):
         return self.email or ""
 
+
 class ConfirmationCode(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='confirmation')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='confirmation')
     code = models.CharField(max_length=6)
 
     def save(self, *args, **kwargs):
