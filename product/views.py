@@ -5,10 +5,12 @@ from .models import Product, Review, Category
 from rest_framework import viewsets
 from .serializers import CategorySerializer, ProductSerializer, ReviewSerializer, ProductWithReviewsSerializer, CategoryWithCountSerializer
 from django.db.models import Count
+from .permissions import IsSuperUserOrReadOnly, IsStaffOrReadOnly, IsAuthenticatedOrReadOnly
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsSuperUserOrReadOnly]
     def list(self, request, *args, **kwargs):
         queryset = Category.objects.annotate(products_count=Count('products'))
         serializer = CategoryWithCountSerializer(queryset, many=True)
@@ -29,3 +31,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 class ReviewViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticatedOrReadOnly()]
+        elif self.request.method in ['PUT', 'PATCH', 'DELETE']:
+            return [IsStaffOrReadOnly()]
+        else:
+            return [IsAuthenticatedOrReadOnly()]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)

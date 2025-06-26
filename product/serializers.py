@@ -34,6 +34,7 @@ class ProductSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Цена должна быть больше 0.")
         return value
 class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.StringRelatedField(read_only=True)
     class Meta:
         model = Review
         fields = ['id', 'text', 'product', 'stars']
