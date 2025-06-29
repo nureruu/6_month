@@ -10,41 +10,32 @@ class User_Base_Serializers(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
 
+class AuthValidateSerializer(serializers.Serializer):
+    pass
 class RegisterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['username', 'password', 'email']
-        extra_kwargs = {'password': {'write_only': True}}
-
-    def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        user.is_active = False
-        user.save()
-        ConfirmationCode.objects.create(user=user)
-        return user
-
-
-class ConfirmCodeSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    code = serializers.CharField(max_length=6)
-
-    def validate(self, data):
-        username = data['username']
-        code = data['code']
+    def validate_username(self, username):
         try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            raise serializers.ValidationError("Пользователь не найден")
+            CustomUser.objects.get(username=username)
+        except:
+            return username
+        raise ValueError('user already exist!')
+class ConfirmCodeSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    code = serializers.CharField()
 
-        if not hasattr(user, 'confirmation') or user.confirmation.code != code:
-            raise serializers.ValidationError("Неверный код подтверждения")
+    def validate(self, attrs):
+        user_id = attrs.get('user_id')
+        code = attrs.get('code')
 
-        data['user'] = user
-        return data
-
-    def save(self, **kwargs):
-        user = self.validated_data['user']
-        user.is_active = True
-        user.save()
-        user.confirmation.delete()
-        return user
+        try:
+            user = CustomUser.objects.get(id = user_id)
+        except CustomUser.DoesNotExist:
+            raise ValueError('user alr exist!')
+        try:
+            confirmation_code = ConfirmationCode.objects.get(user = user)
+        except ConfirmationCode.DoesNotExist:
+            raise ValueError('doesnt found!')
+        if confirmation_code.code != code:
+            raise ValueError('mistake')
+        
+        return attrs

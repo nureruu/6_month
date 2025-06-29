@@ -12,8 +12,8 @@ class Product(models.Model):
     title = models.CharField(max_length=300)
     description = models.TextField()
     price = models.IntegerField()
-    Category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
-
+    Category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    owner = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE, related_name='customuser')
     def __str__(self):
         return self.title
     
@@ -25,3 +25,4 @@ class Review(models.Model):
     default = 5
     def __str__(self):
         return self.text
+

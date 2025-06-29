@@ -36,7 +36,7 @@ class ReviewViewSet(viewsets.ReadOnlyModelViewSet):
             return [IsAuthenticatedOrReadOnly()]
         elif self.request.method in ['PUT', 'PATCH', 'DELETE']:
             return [IsStaffOrReadOnly()]
-        else:
+        else:   
             return [IsAuthenticatedOrReadOnly()]
 
     def perform_create(self, serializer):
