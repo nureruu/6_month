@@ -3,6 +3,9 @@ from django.contrib.auth import get_user_model
 from .models import ConfirmationCode
 from django.contrib.auth.models import User
 from users.models import CustomUser
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from datetime import date
+
 User = get_user_model()
 
 class User_Base_Serializers(serializers.Serializer):
@@ -39,3 +42,22 @@ class ConfirmCodeSerializer(serializers.Serializer):
             raise ValueError('mistake')
         
         return attrs
+    
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user = self.user
+
+        if user.birth_date is None:
+            raise serializers.ValidationError("Пожалуйста, укажите дату рождения в профиле.")
+
+        today = date.today()
+        age = today.year - user.birth_date.year - (
+            (today.month, today.day) < (user.birth_date.month, user.birth_date.day)
+        )
+
+        if age < 18:
+            raise serializers.ValidationError("Вам должно быть не менее 18 лет для входа.")
+        data['birth_date'] = str(user.birth_date)
+
+        return data

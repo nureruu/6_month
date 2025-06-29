@@ -1,9 +1,11 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from .serializers import RegisterSerializer, ConfirmCodeSerializer
+from .serializers import RegisterSerializer, ConfirmCodeSerializer, CustomTokenObtainPairSerializer
 from django.contrib.auth import get_user_model
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView 
+from rest_framework_simplejwt.views import TokenObtainPairView
+
 User = get_user_model()
 
 class RegisterView(APIView):
@@ -24,3 +26,5 @@ class ConfirmCodeView(generics.GenericAPIView):
             serializer.save()
             return Response({"detail": "Пользователь успешно подтвержден"}, status=200)
         return Response(serializer.errors, status=400)
+class CustomTokenView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
