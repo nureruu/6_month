@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from users.models import CustomUser
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from datetime import date
-
+from django.core.cache import cache
 User = get_user_model()
 
 class User_Base_Serializers(serializers.Serializer):
@@ -21,28 +21,37 @@ class RegisterSerializer(serializers.ModelSerializer):
             CustomUser.objects.get(username=username)
         except:
             return username
-        raise ValueError('user already exist!')
+        raise serializers.ValidationError('user already exist!')
 class ConfirmCodeSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField()
+    email = serializers.EmailField()
     code = serializers.CharField()
 
     def validate(self, attrs):
-        user_id = attrs.get('user_id')
+        email = attrs.get('email')
         code = attrs.get('code')
 
+        from django.core.cache import cache
+        real_code = cache.get(f"confirm_code:{email}")
+
+        if real_code is None:
+            raise serializers.ValidationError("Код истёк или не найден.")
+        if real_code != code:
+            raise serializers.ValidationError("Неверный код.")
+
         try:
-            user = CustomUser.objects.get(id = user_id)
+            user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
-            raise ValueError('user alr exist!')
-        try:
-            confirmation_code = ConfirmationCode.objects.get(user = user)
-        except ConfirmationCode.DoesNotExist:
-            raise ValueError('doesnt found!')
-        if confirmation_code.code != code:
-            raise ValueError('mistake')
-        
+            raise serializers.ValidationError("Пользователь не найден.")
+
+        attrs["user"] = user 
         return attrs
-    
+    def save(self, **kwargs):
+        user = self.validated_data["user"]
+        user.is_active = True
+        user.save()
+        cache.delete(f"confirm_code:{user.email}")
+        return user
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
