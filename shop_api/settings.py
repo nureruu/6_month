@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'users',
     'rest_framework.authtoken',
     # 'drf-yasg',
+    'drf_yasg',
 ]
 
 REST_FRAMEWORK = {
@@ -146,7 +147,9 @@ CACHES = {
         }
     }
 }
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/2"
+CELERY_DEFAULT_BACKEND = "redis://127.0.0.1:6379/2"
 
 # 'DEFAULT_PERMISSION_CLASSES' : [
 #     'rest_framework.permissions.Allow'
-# ]
+# ]    

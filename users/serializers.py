@@ -16,12 +16,15 @@ class User_Base_Serializers(serializers.Serializer):
 class AuthValidateSerializer(serializers.Serializer):
     pass
 class RegisterSerializer(serializers.ModelSerializer):
-    def validate_username(self, username):
-        try:
-            CustomUser.objects.get(username=username)
-        except:
-            return username
-        raise serializers.ValidationError('user already exist!')
+    class Meta:
+        model = CustomUser
+        fields = ['email', 'username', 'password']
+
+    def create(self, validated_data):
+        user = CustomUser.objects.create_user(**validated_data)
+        user.is_active = False
+        user.save()
+        return user
 class ConfirmCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField()

@@ -37,7 +37,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField(read_only=True)
     class Meta:
         model = Review
-        fields = ['id', 'text', 'product', 'stars']
+        fields = '__all__'
     def validate_text(self, value):
         if len(value.strip()) < 5:
             raise serializers.ValidationError("Отзыв должен содержать не менее 5 символов.")

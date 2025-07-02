@@ -6,6 +6,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView 
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.core.cache import cache
+from drf_yasg.utils import swagger_auto_schema
 import random
 User = get_user_model()
 
@@ -19,6 +20,7 @@ def check_code(email, input_code):
     return real_code == input_code
 
 class RegisterView(APIView):
+    @swagger_auto_schema(request_body=RegisterSerializer)
     def post(self, request):
         email = request.data.get("email")
 
@@ -31,7 +33,8 @@ class RegisterView(APIView):
 
         code = generate_and_store_code(email)
         print(f"Код подтверждения для {email}: {code}")
-
+        from users.tasks import send_otp_email
+        send_otp_email.delay(email, code)
         return Response({"message": "Code sent to email"})
 class ConfirmView(APIView):
     def post(self, request):
@@ -59,4 +62,5 @@ class ConfirmCodeView(generics.GenericAPIView):
         return Response(serializer.errors, status=400)
 class CustomTokenView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
 
